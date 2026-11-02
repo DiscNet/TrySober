@@ -8,26 +8,33 @@ APP = "org.vinegarhq.Sober"
 def command(*args):
     try:
         p = subprocess.run(args, text=True, capture_output=True, timeout=10)
-        return p.stdout.strip() if p.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+        return {"ok": p.returncode == 0, "stdout": p.stdout.strip(), "stderr": p.stderr.strip()}
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return {"ok": False, "stdout": "", "stderr": str(e)}
 
 def main():
-    info = command("flatpak", "info", "--show-version", APP)
-    ps = command("flatpak", "ps", "--columns=instance,application,pid")
+    installed = command("flatpak", "info", APP)
+    version = command("flatpak", "info", "--show-version", APP)
+    running = command("flatpak", "ps", "--columns=application,instance,pid")
     perms = command("flatpak", "info", "--show-permissions", APP)
     instances = []
-    if ps:
-        for line in ps.splitlines()[1:]:
+    if running["ok"]:
+        for line in running["stdout"].splitlines():
             fields = line.split()
-            if len(fields) >= 3 and fields[1] == APP:
-                instances.append({"instance": fields[0], "pid": fields[2]})
+            if len(fields) >= 3 and fields[0] == APP:
+                instances.append({"instance": fields[1], "pid": fields[2]})
     result = {
         "app_id": APP,
-        "version": info,
+        "installed": installed["ok"],
+        "version": version["stdout"] if version["ok"] else None,
         "running": bool(instances),
         "instances": instances,
-        "flatpak_permissions": perms,
+        "flatpak_permissions": perms["stdout"] if perms["ok"] else None,
+        "diagnostic_errors": {
+            name: result["stderr"] for name, result in {
+                "installed": installed, "version": version, "processes": running, "permissions": perms
+            }.items() if not result["ok"]
+        },
         "luau_execution_interface": "not established",
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
