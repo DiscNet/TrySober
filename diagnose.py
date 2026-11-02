@@ -14,7 +14,15 @@ def command(*args):
 
 def main():
     installed = command("flatpak", "info", APP)
-    version = command("flatpak", "info", "--show-version", APP)
+    version = None
+    if installed["ok"]:
+        for line in installed["stdout"].splitlines():
+            if ":" not in line:
+                continue
+            key, value = line.split(":", 1)
+            if key.strip().casefold() in ("versão", "version"):
+                version = value.strip()
+                break
     running = command("flatpak", "ps", "--columns=application,instance,pid")
     perms = command("flatpak", "info", "--show-permissions", APP)
     instances = []
@@ -26,13 +34,13 @@ def main():
     result = {
         "app_id": APP,
         "installed": installed["ok"],
-        "version": version["stdout"] if version["ok"] else None,
+        "version": version,
         "running": bool(instances),
         "instances": instances,
         "flatpak_permissions": perms["stdout"] if perms["ok"] else None,
         "diagnostic_errors": {
             name: result["stderr"] for name, result in {
-                "installed": installed, "version": version, "processes": running, "permissions": perms
+                "installed": installed, "processes": running, "permissions": perms
             }.items() if not result["ok"]
         },
         "luau_execution_interface": "not established",
