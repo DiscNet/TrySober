@@ -39,3 +39,7 @@ Referências:
 - https://create.roblox.com/docs/reference/engine/classes/ServerScriptService
 
 A ferramenta não modifica memória do Roblox, não injeta bibliotecas e não altera arquivos do Sober.
+
+## Pesquisa de viabilidade
+
+A avaliação documentada da execução Luau dentro do cliente Sober está em [docs/SOBER_EXECUTION_FEASIBILITY.md](docs/SOBER_EXECUTION_FEASIBILITY.md). **Nenhum mecanismo de execução foi demonstrado**. A detecção de processos e o download de arquivos não substituem um executor.
